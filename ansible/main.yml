@@ -1,0 +1,60 @@
+---
+- name: Tech Talent SRE
+  hosts: demo
+  become: true
+  #become_user: ubuntu
+  gather_facts: false
+  pre_tasks:
+    # Dependencias Kubectl
+    - name: Instalando dependencias kubectl e minikube
+      apt:
+       name: ['curl', 'apt-transport-https', 'ca-certificates','conntrack']
+       state: present
+       update_cache: yes
+    - name: Adicionando chave Google publica
+      ansible.builtin.apt_key:
+        url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+        state: present
+    - name: Adicionando repositorio do Google a lista da maquina
+      ansible.builtin.apt_repository:
+        repo: deb https://apt.kubernetes.io/ kubernetes-xenial main
+        state: present
+        update_cache: yes
+    # Depdendencias Docker
+    - name: Adicionando chave Docker public
+      ansible.builtin.apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+    - name: Adicionando repositorio do Docker a lista da maquina
+      ansible.builtin.apt_repository:
+        repo: deb https://download.docker.com/linux/ubuntu bionic main
+        state: present
+        update_cache: yes
+  tasks:
+    # Instalando Docker https://docs.docker.com/engine/install/ubuntu/
+    - name: Instalar Docker
+      apt:
+        name: ['docker.io','containerd']
+    - name: Adicionando o usuario ubuntu ao grupo Docker
+      user:
+        name: ubuntu
+        groups: docker,sudo
+        append: yes
+    # Como instalar kubectl https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/#install-using-native-package-management
+    - name: Instalar kubectl
+      apt:
+        name: kubectl
+    - name: Touch the same file, but add/remove some permissions
+      ansible.builtin.file:
+        path: /home/ubuntu/.kube
+        state: directory
+        mode: ugo+rwx
+    - name: Instalar minikube
+      apt:
+        deb: https://storage.googleapis.com/minikube/releases/latest/minikube_latest_amd64.deb
+    - name: Execute the UNAME command
+      register: instalacao
+      command: "minikube start --driver=none"
+    - debug:
+        var: instalacao.stdout_lines
+
